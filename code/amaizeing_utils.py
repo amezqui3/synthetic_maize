@@ -656,7 +656,7 @@ def blade_fit_dw(deg, length, dangle=1.0):
     b = length[1]*np.cos(theta2)
     d = length[1]*np.sin(theta2)
 
-    if (b-a) <= 1e-5 or (c-d) <= 1e-5:
+    if (b-a) <= 1 or (c-d) <= 1:
         return 0,0,b,d
 
     N = (b-a)*np.tan(theta0)/(d-c)
@@ -755,7 +755,7 @@ def plot_poly_blade(blades, deg, params, title='title', labels='actual', writefi
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #/////////////////////////////////////////////////////////////////////////////////////////
 
-def fit_allometry(data, i, j, log=True, plot_fig=True, init=0, title='Allometry', w=False, dst='./'):
+def fit_allometry(data, i, j, log=True, plot_fig=True, init=0, dpi=150, title='Allometry', w=False, dst='./'):
     traits = data.columns[init:]
     #print(traits[i], 'vs', traits[j])
 
@@ -802,7 +802,7 @@ def fit_allometry(data, i, j, log=True, plot_fig=True, init=0, title='Allometry'
                 filename = dst + 'log_allometry_' + traits[j]+'_vs_'+traits[i]+'.jpg'
             else:
                 filename = dst + 'allometry_' + traits[j]+'_vs_'+traits[i]+'.jpg'
-            plt.savefig(filename, dpi=150, format='jpg', bbox_inches='tight', pil_kwargs={'optimize':True})
+            plt.savefig(filename, dpi=dpi, format='jpg', bbox_inches='tight', pil_kwargs={'optimize':True})
             plt.close()
 
     return traits[i], traits[j], R2
