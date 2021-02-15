@@ -706,7 +706,7 @@ def poly_blade_fit(deg, length, resol=50, dangle_correction=True):
 
     return np.column_stack((cxrange,blade)), [A,N,B,M, a,b,c,d], down_curled
 
-def plot_poly_blade(blades, deg, params, title='title', labels='actual', writefig=False, dst='./', verbose=False, dpi=200):
+def plot_poly_blade(blades, deg, params, title='title', labels='actual', writefig=False, dst='./', verbose=False, dpi=100):
 
     csscolors = ['darkgreen','lawngreen', 'chocolate', 'darkorange','steelblue', 'indigo']
     if len(blades) != len(params):
@@ -718,7 +718,7 @@ def plot_poly_blade(blades, deg, params, title='title', labels='actual', writefi
 
     for i in range(len(blades)):
         A,N,B,M, a,b,c,d = params[i]
-        plt.plot(blades[i][:,0], blades[i][:,1], c=csscolors[i], lw=3, label=labels[i])
+        plt.plot(blades[i][:,0], blades[i][:,1], c=csscolors[i], lw=5, label=labels[i])
         if verbose:
             print('\tModel {}'.format(i))
             print('Up::::\tA = {:.2e}\tN = {:.2f}'.format(A,N))
@@ -728,14 +728,14 @@ def plot_poly_blade(blades, deg, params, title='title', labels='actual', writefi
         print('--------\na = {:.2f}\tc = {:.2f}'.format(a,c))
         print('b = {:.2f}\td = {:.2f}\n-------'.format(b,d))
 
-    plt.axline((0,0), slope=math.tan(theta[0]), c='b', ls='--', label='angle {}'.format(deg[0]))
-    plt.axline((0,0), slope=math.tan(theta[1]), c='b', ls=(0, (3, 5, 1, 5, 1, 5)), label='angle {}'.format(deg[1]))
-    plt.axline((0,0), slope=math.tan(theta[2]), c='b', ls='-.', label='angle {}'.format(deg[2]))
+    plt.axline((0,0), slope=math.tan(theta[0]), c='b', ls='--', label='angle ${}^\circ$'.format(int(90-deg[0])))
+    plt.axline((0,0), slope=math.tan(theta[1]), c='b', ls=(0, (3, 5, 1, 5, 1, 5)), label='angle ${}^\circ$'.format(int(90-deg[1])))
+    plt.axline((0,0), slope=math.tan(theta[2]), c='b', ls='-.', label='angle ${}^\circ$'.format(int(90-deg[2])))
     plt.axvline(x=0, c='k', lw=3)
     plt.axhline(y=0, c='k', lw=3)
 
-    plt.plot([a,a,0],[0,c,c], c='r', ls=(0, (3, 10, 1, 10)))
-    plt.plot([b,b,0],[0,d,d], c='r', ls=(0, (3, 10, 1, 10)))
+    plt.plot([a,a,0],[0,c,c], c='r', ls='-.')
+    plt.plot([b,b,0],[0,d,d], c='r', ls='-.')
 
     plt.legend(fontsize=15)
     plt.title(title, fontsize=20)
@@ -845,65 +845,63 @@ def outliers(dst, data, traits_i, traits_j, residual, cutoff=20):
 #/////////////////////////////////////////////////////////////////////////////////////////
 
 def shower_thought():
-    fig, ax = plt.subplots(2,4, figsize=(16,6))
+    fs,lw = 28,5
+
+    fig, ax = plt.subplots(2,5, figsize=(20,8))
     x = np.linspace(-5,5,50)
 
     i = (0,0)
-    ax[i].plot(x, np.power(x,2), '-b')
-    ax[i].axvline(x=0, c='r')
-    ax[i].axhline(y=0, c='r')
-    ax[i].set_aspect(0.3)
-    ax[i].set_title('x^N')
+    ax[i].plot(x, np.power(x,2), '-b', lw=lw)
+    ax[i].set_title('$x^{N_1}$', fontsize=fs)
 
     i = (0,1)
-    ax[i].plot(x, -0.3*np.power(x,2), '-b')
-    ax[i].axvline(x=0, c='r')
-    ax[i].axhline(y=0, c='r')
-    ax[i].set_aspect('equal')
-    ax[i].set_title('Ax^N')
+    ax[i].plot(x, -0.3*np.power(x,2), '-b', lw=lw)
+    ax[i].set_title('$A_1x^{N_1}$', fontsize=fs)
 
     i = (0,2)
-    ax[i].plot(x, -0.3*np.power(x,2) + 5, '-b')
-    ax[i].axvline(x=0, c='r')
-    ax[i].axhline(y=0, c='r')
-    ax[i].set_aspect('equal')
-    ax[i].set_title('Ax^N + C')
+    ax[i].plot(x, -0.3*np.power(x,2) + 5, '-b', lw=lw)
+    ax[i].set_title('$A_1x^{N_1} + C$', fontsize=fs)
 
     i = (0,3)
-    ax[i].plot(x+4, -0.3*np.power(x,2) + 5, '-b')
-    ax[i].axvline(x=0, c='r')
-    ax[i].axhline(y=0, c='r')
-    ax[i].set_aspect('equal')
-    ax[i].set_title('A(x-B)^N + C')
+    ax[i].plot(x+4.1, -0.3*np.power(x,2) + 5, '-b', lw=lw)
+    ax[i].set_title('$A_1(x-B)^{N_1} + C$', fontsize=fs)
 
-    x = np.linspace(-5,5,50)
+    xx = np.linspace(-4.1,0,25)
+    i = (0,4)
+    ax[i].plot(x+4.1, -0.3*np.power(x,2) + 5, '-w', lw=lw)
+    ax[i].plot(xx+4.1, -0.3*np.power(xx,2) + 5, '-b', lw=lw)
+    ax[i].set_title('base to apex', fontsize=fs)
 
     i = (1,0)
-    ax[i].plot(x, np.power(x,3), '-b')
-    ax[i].axvline(x=0, c='r')
-    ax[i].axhline(y=0, c='r')
-    ax[i].set_aspect(0.1)
-    ax[i].set_title('x^N')
+    ax[i].plot(x, np.power(x,3), '-b', lw=lw)
+    ax[i].set_title('$x^{N_2}$', fontsize=fs)
 
     i = (1,1)
-    ax[i].plot(x, -0.05*np.power(x,3), '-b')
-    ax[i].axvline(x=0, c='r')
-    ax[i].axhline(y=0, c='r')
-    ax[i].set_aspect('equal')
-    ax[i].set_title('Ax^N')
+    ax[i].plot(x, -0.05*np.power(x,3), '-b', lw=lw)
+    ax[i].set_title('$A_2x^{N_2}$', fontsize=fs)
 
     i = (1,2)
-    ax[i].plot(x, -0.05*np.power(x,3) + 5, '-b')
-    ax[i].axvline(x=0, c='r')
-    ax[i].axhline(y=0, c='r')
-    ax[i].set_aspect('equal')
-    ax[i].set_title('Ax^N + C')
+    ax[i].plot(x, -0.05*np.power(x,3) + 5, '-b', lw=lw)
+    ax[i].set_title('$A_2x^{N_2} + {C}$', fontsize=fs)
 
     i = (1,3)
-    ax[i].plot(x+3, -0.05*np.power(x,3) + 5, '-b')
-    ax[i].axvline(x=0, c='r')
-    ax[i].axhline(y=0, c='r')
-    ax[i].set_aspect('equal')
-    ax[i].set_title('A(x-b)^N + C')
+    ax[i].plot(x+3, -0.05*np.power(x,3) + 5, '-b', lw=lw)
+    ax[i].set_title('$A_2(x-B)^{N_2} + C$', fontsize=fs)
+
+    xx = np.linspace(0,4,25)
+    i = (1,4)
+    ax[i].plot(x+3, -0.05*np.power(x,3) + 5, '-w', lw=lw)
+    ax[i].plot(xx+3, -0.05*np.power(xx,3) + 5, '-b', lw=lw)
+    ax[i].set_title('apex to tip', fontsize=fs)
+
+    for i in range(ax.shape[0]):
+        for j in range(ax.shape[1]):
+            ax[i,j].tick_params(labelsize=int(fs*.65))
+            ax[i,j].axvline(x=0, c='r')
+            ax[i,j].axhline(y=0, c='r')
+            ax[i,j].set_aspect('equal')
+
+    ax[0,0].set_aspect(0.3)
+    ax[1,0].set_aspect(0.1)
 
     plt.tight_layout()
