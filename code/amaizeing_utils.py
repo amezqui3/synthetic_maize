@@ -737,6 +737,8 @@ def plot_poly_blade(blades, deg, params, title='title', labels='actual', writefi
     plt.plot([a,a,0],[0,c,c], c='r', ls='-.')
     plt.plot([b,b,0],[0,d,d], c='r', ls='-.')
 
+    plt.plot([a,b],[c,d], 'or', ms=12)
+
     plt.legend(fontsize=15)
     plt.title(title, fontsize=20)
     plt.tick_params(labelsize=15)
