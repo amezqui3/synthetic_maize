@@ -642,12 +642,12 @@ def blade_fit_up(deg, length):
     theta1 = deg[1]/180*math.pi
     a = length[0]*np.cos(theta1)
     c = length[0]*np.sin(theta1)
-    N = a*np.tan(theta0)/c
+    N = np.min([2.25, a*np.tan(theta0)/c])
     A = c/np.power(a, N)
 
     return A, N, a, c
 
-def blade_fit_dw(deg, length, dangle=1.0):
+def blade_fit_dw(deg, length, dangle=.5):
     theta0 = -(dangle*deg[0])/180*math.pi
     theta1 = deg[1]/180*math.pi
     theta2 = deg[2]/180*math.pi
@@ -656,7 +656,7 @@ def blade_fit_dw(deg, length, dangle=1.0):
     b = length[1]*np.cos(theta2)
     d = length[1]*np.sin(theta2)
 
-    if (b-a) <= 1 or (c-d) <= 1:
+    if ((b-a) <= 1) or ((c-d) <= 1):
         return 0,0,b,d
 
     N = (b-a)*np.tan(theta0)/(d-c)
@@ -675,22 +675,32 @@ def polycurve_dw(x, A, N, a, c):
         poly = -np.flip(poly) + poly[0] + poly[-1]
     return poly
 
-def poly_blade_fit(deg, length, resol=50, dangle_correction=True):
+def poly_blade_fit(deg, length, resol=50, dangle_correction=True, itermax=100):
     down_curled = False
+    dangle = 0.5
     A,N,a,c = blade_fit_up(deg, length)
-    B,M,b,d = blade_fit_dw(deg, length)
+    if N < 1.1:
+        dangle_correction = False
+        dangle = 1.0
+
+    B,M,b,d = blade_fit_dw(deg, length, dangle=dangle)
 
     if B==0 or M==0:
         down_curled = True
 
     if not down_curled and dangle_correction:
-        dangle = 1.0
-        while M > 5.50:
-            dangle -= 0.05
+        dangle = .5
+        it = 0
+        while ((M > N +.25) or (M < .25) or (M > 2.5)) and (it < itermax):
+            dangle -= 0.01
             B, M, b, d = blade_fit_dw(deg, length, dangle)
-        while M < 1.25:
-            dangle += 0.05
+            it += 1
+        dangle = .5
+        it = 0
+        while ((M < N -.25) or (M < .25) or (M > 2.5)) and (it < itermax):
+            dangle += 0.01
             B, M, b, d = blade_fit_dw(deg, length, dangle)
+            it += 1
 
     cxrange1 = np.linspace(0, a, resol)
     blade_up = polycurve_up(cxrange1, A, N, a, c)
@@ -706,7 +716,28 @@ def poly_blade_fit(deg, length, resol=50, dangle_correction=True):
 
     return np.column_stack((cxrange,blade)), [A,N,B,M, a,b,c,d], down_curled
 
-def plot_poly_blade(blades, deg, params, title='title', labels='actual', writefig=False, dst='./', verbose=False, dpi=100):
+def blade_lengths(blade, resol=50, down_curled=False):
+
+    length_blade = np.sum(np.sqrt(np.sum(np.diff(blade, axis=0)**2, axis=1)))
+    norm_blade = blade/length_blade
+
+    upblade = blade[:resol]
+    length_upblade = np.sum(np.sqrt(np.sum(np.diff(upblade, axis=0)**2, axis=1)))
+    norm_upblade = upblade/length_upblade
+
+    if not down_curled:
+        dwblade = blade[resol:]
+        length_dwblade = np.sum(np.sqrt(np.sum(np.diff(dwblade, axis=0)**2, axis=1)))
+        norm_dwblade = dwblade/length_dwblade
+    else:
+        dwnblade = []
+        length_dwblade = 0
+        norm_dwblade = []
+
+    return length_blade, length_upblade, length_dwblade
+
+
+def plot_poly_blade(blades, deg, params, title='title', labels=['label'], writefig=False, dst='./', verbose=False, dpi=100):
 
     csscolors = ['darkgreen','lawngreen', 'chocolate', 'darkorange','steelblue', 'indigo']
     if len(blades) != len(params):
@@ -718,9 +749,9 @@ def plot_poly_blade(blades, deg, params, title='title', labels='actual', writefi
 
     for i in range(len(blades)):
         A,N,B,M, a,b,c,d = params[i]
-        plt.plot(blades[i][:,0], blades[i][:,1], c=csscolors[i], lw=5, label=labels[i])
+        plt.plot(blades[i][:,0], blades[i][:,1], c=csscolors[i], lw=5, label=labels[i], zorder=i+10)
         if verbose:
-            print('\tModel {}'.format(i))
+            print('\tModel:\t{}'.format(labels[i]))
             print('Up::::\tA = {:.2e}\tN = {:.2f}'.format(A,N))
             print('Down::\tB = {:.2e}\tM = {:.2f}'.format(B,M))
 
@@ -728,16 +759,16 @@ def plot_poly_blade(blades, deg, params, title='title', labels='actual', writefi
         print('--------\na = {:.2f}\tc = {:.2f}'.format(a,c))
         print('b = {:.2f}\td = {:.2f}\n-------'.format(b,d))
 
-    plt.axline((0,0), slope=math.tan(theta[0]), c='b', ls='--', label='angle ${}^\circ$'.format(int(90-deg[0])))
-    plt.axline((0,0), slope=math.tan(theta[1]), c='b', ls=(0, (3, 5, 1, 5, 1, 5)), label='angle ${}^\circ$'.format(int(90-deg[1])))
-    plt.axline((0,0), slope=math.tan(theta[2]), c='b', ls='-.', label='angle ${}^\circ$'.format(int(90-deg[2])))
-    plt.axvline(x=0, c='k', lw=3)
-    plt.axhline(y=0, c='k', lw=3)
+    plt.axline((0,0), slope=math.tan(theta[0]), c='b', ls='--', label='angle ${}^\circ$'.format(int(90-deg[0])), zorder=1)
+    plt.axline((0,0), slope=math.tan(theta[1]), c='b', ls=(0, (3, 5, 1, 5, 1, 5)), label='angle ${}^\circ$'.format(int(90-deg[1])), zorder=2)
+    plt.axline((0,0), slope=math.tan(theta[2]), c='b', ls='-.', label='angle ${}^\circ$'.format(int(90-deg[2])), zorder=3)
+    plt.axvline(x=0, c='k', lw=3, zorder=4)
+    plt.axhline(y=0, c='k', lw=3, zorder=5)
 
-    plt.plot([a,a,0],[0,c,c], c='r', ls='-.')
-    plt.plot([b,b,0],[0,d,d], c='r', ls='-.')
+    plt.plot([a,a,0],[0,c,c], c='r', ls='-.', zorder=6)
+    plt.plot([b,b,0],[0,d,d], c='r', ls='-.', zorder=7)
 
-    plt.plot([a,b],[c,d], 'or', ms=12)
+    plt.plot([a,b],[c,d], 'or', ms=12, zorder=8)
 
     plt.legend(fontsize=15)
     plt.title(title, fontsize=20)
@@ -747,7 +778,7 @@ def plot_poly_blade(blades, deg, params, title='title', labels='actual', writefi
     if writefig:
         filename = '_'.join(title.split(' ')).lower()
         plt.savefig(dst + 'poly_model_'+filename+'.png', dpi=dpi, format='png', bbox_inches='tight',
-                    facecolor='white', transparent=False)
+                    facecolor='white', transparent=False, pil_kwargs={'optimize':True})
         plt.close();
 
 
