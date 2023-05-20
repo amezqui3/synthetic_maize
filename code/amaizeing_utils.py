@@ -637,18 +637,18 @@ def show_results(i, degs, lengths, data, src, writefig=False):
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #/////////////////////////////////////////////////////////////////////////////////////////
 
-def blade_fit_up(deg, length):
+def blade_fit_up(deg, length, thr=2.25):
     theta0 = deg[0]/180*math.pi
     theta1 = deg[1]/180*math.pi
     a = length[0]*np.cos(theta1)
     c = length[0]*np.sin(theta1)
-    N = np.min([2.25, a*np.tan(theta0)/c])
+    N = np.min([thr, a*np.tan(theta0)/c])
     A = c/np.power(a, N)
 
     return A, N, a, c
 
 def blade_fit_dw(deg, length, dangle=.5):
-    theta0 = -(dangle*deg[0])/180*math.pi
+
     theta1 = deg[1]/180*math.pi
     theta2 = deg[2]/180*math.pi
     a = length[0]*np.cos(theta1)
@@ -656,10 +656,14 @@ def blade_fit_dw(deg, length, dangle=.5):
     b = length[1]*np.cos(theta2)
     d = length[1]*np.sin(theta2)
 
-    if ((b-a) <= 1) or ((c-d) <= 1):
+    if ((b-a) <= 3) or ((c-d) <= 1):
         return 0,0,b,d
+    if dangle == 0:
+        N = 1
+    else:
+        theta0 = -(dangle*deg[0])/180*math.pi
+        N = (b-a)*np.tan(theta0)/(d-c)
 
-    N = (b-a)*np.tan(theta0)/(d-c)
     A = (d-c)/np.power(b-a, N)
 
     return A, N, b, d
@@ -675,13 +679,13 @@ def polycurve_dw(x, A, N, a, c):
         poly = -np.flip(poly) + poly[0] + poly[-1]
     return poly
 
-def poly_blade_fit(deg, length, resol=50, dangle_correction=True, itermax=100):
+def poly_blade_fit(deg, length, resol=50, dangle_correction=True, itermax=100, thr=2.25):
     down_curled = False
     dangle = 0.5
-    A,N,a,c = blade_fit_up(deg, length)
+    A,N,a,c = blade_fit_up(deg, length, thr)
     if N < 1.1:
         dangle_correction = False
-        dangle = 1.0
+        dangle = 0.0
 
     B,M,b,d = blade_fit_dw(deg, length, dangle=dangle)
 
@@ -691,13 +695,14 @@ def poly_blade_fit(deg, length, resol=50, dangle_correction=True, itermax=100):
     if not down_curled and dangle_correction:
         dangle = .5
         it = 0
-        while ((M > N +.25) or (M < .25) or (M > 2.5)) and (it < itermax):
+        while ((M > N +.25) or (M > 2.5)) and (it < itermax):
             dangle -= 0.01
             B, M, b, d = blade_fit_dw(deg, length, dangle)
             it += 1
         dangle = .5
+
         it = 0
-        while ((M < N -.25) or (M < .25) or (M > 2.5)) and (it < itermax):
+        while ((M < N -.25) or (M < .25)) and (it < itermax):
             dangle += 0.01
             B, M, b, d = blade_fit_dw(deg, length, dangle)
             it += 1
